@@ -843,7 +843,7 @@ install_yazi() {
                 source "$HOME/.cargo/env"
             fi
 
-            cargo install --locked yazi-fm yazi-cli
+            cargo install --force yazi-build
 
             print_status "Installing Yazi dependencies..."
             if [ "$PKG_MANAGER" = "apt" ]; then
@@ -1069,6 +1069,16 @@ install_bandwhich() {
 install_browsh() {
     print_header "Browsh (Terminal Browser)"
 
+    if ! command_exists firefox; then
+        print_installing "Firefox (dependency for Browsh)"
+        if [ "$PKG_MANAGER" = "apt" ]; then
+            eval "$PKG_INSTALL firefox-esr || $PKG_INSTALL firefox"
+        else
+            eval "$PKG_INSTALL firefox"
+        fi
+        print_success "Firefox installed"
+    fi
+
     if command_exists browsh; then
         print_success "Browsh is already installed"
     else
@@ -1108,6 +1118,20 @@ install_browsh() {
 
 install_fzf() {
     print_header "FZF (Fuzzy Finder)"
+
+    if ! command_exists fd; then
+        print_installing "fd (dependency for fzf)"
+        if [ "$PKG_MANAGER" = "apt" ]; then
+            eval "$PKG_INSTALL fd-find"
+            if [ -f "/usr/bin/fdfind" ] && [ ! -f "$HOME/.local/bin/fd" ]; then
+                mkdir -p "$HOME/.local/bin"
+                ln -sf /usr/bin/fdfind "$HOME/.local/bin/fd"
+            fi
+        else
+            eval "$PKG_INSTALL fd"
+        fi
+        print_success "fd installed"
+    fi
 
     if command_exists fzf; then
         print_success "FZF is already installed"
