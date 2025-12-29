@@ -631,38 +631,28 @@ install_neovim_latest() {
     if [ "$PKG_MANAGER" = "pacman" ]; then
         eval "$PKG_INSTALL neovim"
     else
-        print_status "Downloading Neovim AppImage..."
-        curl -fLo /tmp/nvim.appimage https://github.com/neovim/neovim/releases/latest/download/nvim.appimage
+        print_status "Downloading Neovim..."
+        local nvim_version=$(curl -s "https://api.github.com/repos/neovim/neovim/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
+        local nvim_url="https://github.com/neovim/neovim/releases/download/v${nvim_version}/nvim-linux-x86_64.tar.gz"
 
-        if [ -f /tmp/nvim.appimage ]; then
-            chmod u+x /tmp/nvim.appimage
-            sudo mkdir -p /opt/nvim
-            sudo mv /tmp/nvim.appimage /opt/nvim/nvim.appimage
-            sudo ln -sf /opt/nvim/nvim.appimage /usr/local/bin/nvim
-            print_success "Neovim installed via AppImage"
+        curl -fL "$nvim_url" -o /tmp/nvim-linux-x86_64.tar.gz
+
+        if [ -f /tmp/nvim-linux-x86_64.tar.gz ] && file /tmp/nvim-linux-x86_64.tar.gz | grep -q "gzip"; then
+            sudo rm -rf /opt/nvim-linux-x86_64
+            sudo tar -C /opt -xzf /tmp/nvim-linux-x86_64.tar.gz
+            sudo ln -sf /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
+            rm -f /tmp/nvim-linux-x86_64.tar.gz
+            print_success "Neovim installed via tar.gz"
         else
-            print_status "AppImage failed, trying tar.gz..."
-            local nvim_url="https://github.com/neovim/neovim/releases/latest/download/nvim-linux64.tar.gz"
+            print_error "Neovim download failed. Trying via package manager..."
+            rm -f /tmp/nvim-linux-x86_64.tar.gz
 
-            curl -fL "$nvim_url" -o /tmp/nvim-linux64.tar.gz
-
-            if file /tmp/nvim-linux64.tar.gz | grep -q "gzip"; then
-                sudo rm -rf /opt/nvim-linux64
-                sudo tar -C /opt -xzf /tmp/nvim-linux64.tar.gz
-                sudo ln -sf /opt/nvim-linux64/bin/nvim /usr/local/bin/nvim
-                rm -f /tmp/nvim-linux64.tar.gz
-                print_success "Neovim installed via tar.gz"
-            else
-                print_error "Neovim download failed. Trying via package manager..."
-                rm -f /tmp/nvim-linux64.tar.gz
-
-                if [ "$PKG_MANAGER" = "apt" ]; then
-                    sudo add-apt-repository -y ppa:neovim-ppa/unstable 2>/dev/null || true
-                    sudo apt update
-                    eval "$PKG_INSTALL neovim"
-                elif [ "$PKG_MANAGER" = "dnf" ]; then
-                    eval "$PKG_INSTALL neovim"
-                fi
+            if [ "$PKG_MANAGER" = "apt" ]; then
+                sudo add-apt-repository -y ppa:neovim-ppa/unstable 2>/dev/null || true
+                sudo apt update
+                eval "$PKG_INSTALL neovim"
+            elif [ "$PKG_MANAGER" = "dnf" ]; then
+                eval "$PKG_INSTALL neovim"
             fi
         fi
     fi
